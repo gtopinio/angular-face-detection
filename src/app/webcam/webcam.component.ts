@@ -25,10 +25,14 @@ export class WebcamComponent implements OnInit {
   videoInput: any;
 
   async ngOnInit() {
-    await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models'),
+    await Promise.all([
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('../../assets/models'),
+      await faceapi.nets.tinyFaceDetector.loadFromUri('../../assets/models'),
       await faceapi.nets.faceLandmark68Net.loadFromUri('../../assets/models'),
       await faceapi.nets.faceRecognitionNet.loadFromUri('../../assets/models'),
-      await faceapi.nets.faceExpressionNet.loadFromUri('../../assets/models'),]).then(() => this.startVideo());
+      await faceapi.nets.faceExpressionNet.loadFromUri('../../assets/models'),]).then(() => {
+      this.startVideo();
+    });
   }
   /*
   * In startVideo() we are going to request for user webcam and get the stream from it.
@@ -57,7 +61,7 @@ export class WebcamComponent implements OnInit {
       this.stream = stream;
       this.videoInput.srcObject = stream;
       this.videoInput.addEventListener('loadeddata', async () => {
-      this.detect_Faces();
+      await this.detect_Faces();
       });
     });
   }
@@ -79,11 +83,15 @@ export class WebcamComponent implements OnInit {
       };
       faceapi.matchDimensions(this.canvas, this.displaySize);
       setInterval(async () => {
-        this.detection = await faceapi.detectAllFaces(this.videoInput,  new  faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+        this.detection = await faceapi.detectAllFaces(
+          this.videoInput,
+          new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
         this.resizedDetections = faceapi.resizeResults(
           this.detection,
           this.displaySize
         );
+        // Access expressions for each detection
+        console.log(this.resizedDetections[0].expressions);
         this.canvas.getContext('2d').clearRect(0, 0,      this.canvas.width,this.canvas.height);
         faceapi.draw.drawDetections(this.canvas, this.resizedDetections);
         faceapi.draw.drawFaceLandmarks(this.canvas, this.resizedDetections);
